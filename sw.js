@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pm-rahat-v1';
+const CACHE_NAME = 'pm-rahat-v3';
 const ASSETS = [
   './',
   './index.html',
