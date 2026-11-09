@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PM-RAHAT">
+<meta name="theme-color" content="#0f172a">
+<title>PM-RAHAT Emergency Assistant</title>
+
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="https://placehold.co/180x180/d32f2f/ffffff.png?text=PM%0ARAHAT&font=montserrat">
+<link rel="icon" type="image/png" sizes="192x192" href="https://placehold.co/192x192/d32f2f/ffffff.png?text=PM%0ARAHAT&font=montserrat">
+<!-- WhatsApp / Telegram / iMessage Link Preview Card -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="PM-RAHAT Emergency Assistant (112 GPS & SMS)">
+<meta property="og:description" content="Offline-ready 112 GPS locator, emergency SMS dispatcher, and ₹1.5L cashless road accident treatment portal.">
+<meta property="og:url" content="https://reghuagrasala.github.io/pm-rahat/">
+<meta property="og:image" content="https://placehold.co/1200x630/0f172a/ef4444.png?text=PM-RAHAT+EMERGENCY%0A112+GPS+%7C+Rs+1.5L+Cashless+Care&font=montserrat">
+<meta property="og:image:secure_url" content="https://placehold.co/1200x630/0f172a/ef4444.png?text=PM-RAHAT+EMERGENCY%0A112+GPS+%7C+Rs+1.5L+Cashless+Care&font=montserrat">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+
+<style>
+  :root { --red: #d32f2f; --amber: #d97706; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
+  * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+  body { margin: 0; padding: 18px; background: var(--bg); color: var(--text); display: flex; flex-direction: column; min-height: 100vh; justify-content: center; }
+  .header { text-align: center; margin-bottom: 16px; border-bottom: 1px solid #334155; padding-bottom: 12px; }
+  .header h1 { margin: 0; color: #ef4444; font-size: 1.5rem; letter-spacing: 0.5px; }
+  .header p { margin: 5px 0 0; font-size: 0.82rem; color: #94a3b8; }
+  .inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .input-group { display: flex; flex-direction: column; }
+  .input-group label { font-size: 0.72rem; color: #94a3b8; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
+  .input-group input { padding: 11px 10px; border-radius: 8px; border: 1px solid #334155; background: #020617; color: #f8fafc; font-size: 0.92rem; font-weight: 600; text-transform: uppercase; }
+  .btn { display: block; width: 100%; padding: 15px; margin-bottom: 11px; border: none; border-radius: 12px; font-size: 0.98rem; font-weight: 600; text-align: left; text-decoration: none; color: white; background: var(--card); cursor: pointer; border-left: 5px solid #3b82f6; }
+  .btn-emergency { background: var(--red); border-left-color: #fef08a; font-size: 1.05rem; }
+  .btn-sms { background: var(--amber); border-left-color: #fef08a; }
+  .status { font-size: 0.78rem; color: #cbd5e1; background: #020617; padding: 11px; border-radius: 8px; margin-bottom: 14px; white-space: pre-wrap; display: none; border: 1px solid #334155; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>PM-RAHAT ASSISTANT</h1>
+    <p>₹1.5L Cashless Road Accident Care (Admit within 24h)</p>
+  </div>
+
+  <div class="inputs">
+    <div class="input-group">
+      <label for="vehNo">Vehicle No. (Victim)</label>
+      <input type="text" id="vehNo" placeholder="e.g. KL-08-XX-0000" oninput="savePrefs()">
+    </div>
+    <div class="input-group">
+      <label for="icePhone">Family / Police SMS #</label>
+      <input type="tel" id="icePhone" placeholder="Optional Mobile #" oninput="savePrefs()">
+    </div>
+  </div>
+
+  <div id="gpsBox" class="status">Fetching GPS coordinates...</div>
+
+  <button class="btn btn-emergency" onclick="triggerEmergency('call')">
+    1. Copy GPS Location & Dial 112
+  </button>
+  <button class="btn btn-sms" onclick="triggerEmergency('sms')">
+    2. Send Offline Emergency SMS (GPS + Vehicle)
+  </button>
+  <a class="btn" href="https://www.google.com/maps/search/Emergency+Hospital+near+me">
+    3. Nearest Emergency Hospital (Maps)
+  </a>
+  <a class="btn" href="https://hospitals.pmjay.gov.in/" target="_blank">
+    4. Official PM-RAHAT / PM-JAY Portal
+  </a>
+  <a class="btn" href="tel:14555">
+    5. Call NHA / PM-JAY Helpline (14555)
+  </a>
+
+<script>
+const vehInput = document.getElementById('vehNo');
+const phoneInput = document.getElementById('icePhone');
+
+// Load saved vehicle/contact preferences on startup
+window.addEventListener('DOMContentLoaded', () => {
+  vehInput.value = localStorage.getItem('pmrahat_veh') || '';
+  phoneInput.value = localStorage.getItem('pmrahat_phone') || '';
+});
+
+function savePrefs() {
+  localStorage.setItem('pmrahat_veh', vehInput.value.trim().toUpperCase());
+  localStorage.setItem('pmrahat_phone', phoneInput.value.trim());
+}
+
+function buildPayload(lat, lon, acc) {
+  const veh = vehInput.value.trim().toUpperCase() || 'NOT SPECIFIED';
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if (lat && lon) {
+    return `ROAD ACCIDENT ALERT (${time})\nVehicle: ${veh}\nGPS: ${lat}, ${lon} (±${acc}m)\nMaps: https://maps.google.com/?q=${lat},${lon}\nScheme: PM-RAHAT 112 Emergency`;
+  }
+  return `ROAD ACCIDENT ALERT (${time})\nVehicle: ${veh}\nGPS: Unable to lock satellite signal\nScheme: PM-RAHAT 112 Emergency`;
+}
+
+function launchAction(mode, messageText) {
+  if (mode === 'call') {
+    window.location.href = 'tel:112';
+  } else {
+    const recipient = phoneInput.value.trim();
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const sep = isIOS ? '&' : '?';
+    const smsUri = `sms:${recipient}${sep}body=${encodeURIComponent(messageText)}`;
+    window.location.href = smsUri;
+  }
+}
+
+function triggerEmergency(mode) {
+  const box = document.getElementById('gpsBox');
+  box.style.display = 'block';
+  box.textContent = 'Acquiring satellite GPS lock...';
+
+  if (!navigator.geolocation) {
+    const fallbackText = buildPayload(null, null, null);
+    launchAction(mode, fallbackText);
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude.toFixed(6);
+    const lon = pos.coords.longitude.toFixed(6);
+    const acc = Math.round(pos.coords.accuracy);
+    const text = buildPayload(lat, lon, acc);
+    box.textContent = text + '\n(Copied to Clipboard)';
+    navigator.clipboard.writeText(text).catch(() => {});
+    setTimeout(() => launchAction(mode, text), 400);
+  }, () => {
+    const fallbackText = buildPayload(null, null, null);
+    box.textContent = fallbackText + '\n(GPS timeout - opening dialer/SMS)';
+    setTimeout(() => launchAction(mode, fallbackText), 400);
+  }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 10000 });
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
